@@ -4,7 +4,7 @@
 
 from fastapi import APIRouter, HTTPException
 from bson import ObjectId
-from .models import ChatModel
+from .models import ChatModel, UserModel
 from .database import db
 
 router = APIRouter()
@@ -66,20 +66,23 @@ async def delete_all_chats(_id: str) -> bool:
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 대화 추가 메서드
-# 사용하지 않는 메서드이나 참고를 위해 남겨둠.
-@router.post("/add/{provider}/{user_id}")
-async def add_message_to_user_chat_list(user_id: str, provider: str, chat: ChatModel):
-    user = await db.users.find_one({"id": user_id, "provider": provider})
+@router.post("/add/{_id}")
+async def add_chat_message(user: UserModel, user_message: str, bot_message: str):
+    chat_index = len(user.get("messages", []))
+
+    user_message_model: ChatModel = {
+        "role": "user",
+        "content": user_message,
+        "index": chat_index
+    }
     
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    bot_message_model: ChatModel = {
+        "role": "bot",
+        "content": bot_message,
+        "index": chat_index + 1
+    }
 
-    # 기존 메시지 목록을 가져와서 새로운 메시지를 추가
-    existing_messages = user.get("messages", [])
-    existing_messages.append(chat.model_dump())  # 새로운 메시지를 추가
-
-    # 업데이트된 사용자 정보를 MongoDB에 저장
-    await db.users.update_one({"id": user_id, "provider": provider}, {"$set": {"messages": existing_messages}})
-
-    return {"detail": "Chat message added successfully", "messages": existing_messages}
+    await db.users.update_one(
+        {"_id": ObjectId(user.get("_id"))}, 
+        {"$push": {"messages": {"$each": [user_message_model, bot_message_model]}}}
+    )

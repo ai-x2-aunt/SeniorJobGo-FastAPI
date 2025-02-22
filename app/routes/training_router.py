@@ -1,9 +1,6 @@
-# FastApi_SeniorJobGo/app/routes/training_router.py
-
 import logging
 from fastapi import APIRouter, HTTPException, Depends, Request
-from typing import Optional, Dict, List
-from pydantic import BaseModel
+from app.models.schemas import TrainingSearchRequest
 
 from app.agents.training_advisor import TrainingAdvisorAgent
 
@@ -13,15 +10,6 @@ router = APIRouter(
     prefix="/api/v1/trainings",
     tags=["trainings"]
 )
-
-class TrainingSearchRequest(BaseModel):
-    """훈련정보 검색 요청 스키마"""
-    location: Optional[str] = None  # 지역 (예: "서울 강남구")
-    city: Optional[str] = None      # 시/도
-    district: Optional[str] = None  # 구/군
-    interests: List[str] = []       # 관심 분야
-    preferredTime: Optional[str] = None    # 선호 교육시간
-    preferredDuration: Optional[str] = None # 선호 교육기간
 
 def get_training_advisor(request: Request):
     """TrainingAdvisorAgent 인스턴스 가져오기"""

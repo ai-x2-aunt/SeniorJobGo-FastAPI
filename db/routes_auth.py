@@ -3,6 +3,7 @@
 """
 
 from fastapi import APIRouter, HTTPException, Request, Response
+from bson.objectid import ObjectId
 from datetime import datetime
 import bcrypt
 import uuid
@@ -27,6 +28,7 @@ def set_cookie(response: Response, id: str, provider: str):
     response.set_cookie(key="sjgid", value=id, max_age=max_age)
     response.set_cookie(key="sjgpr", value=provider, max_age=max_age)
 
+
 # 쿠키 가져오기
 def get_cookie(request: Request):
     _id = request.cookies.get("sjgid")
@@ -47,8 +49,29 @@ async def get_user_info_by_cookie(request: Request) -> UserModel:
 async def check_cookie(request: Request) -> bool:
     _id = request.cookies.get("sjgid")
     provider = request.cookies.get("sjgpr")
-    user = await db.users.find_one({"_id": _id, "provider": provider})
-    return user is not None
+    return _id, provider
+
+# 쿠키 확인
+@router.get("/check")
+async def check_cookie(request: Request) -> bool:
+    try:
+        _id = request.cookies.get("sjgid")
+        provider = request.cookies.get("sjgpr")
+        user = await db.users.find_one({"_id": ObjectId(_id), "provider": provider})
+        print("user is not None:", user is not None)
+        return user is not None
+    except:
+        return False
+
+# 쿠키 확인 후 사용자 정보 반환
+@router.get("/user/cookie")
+async def get_user_info_by_cookie(request: Request) -> UserModel:
+    _id, provider = get_cookie(request)
+    user = await db.users.find_one({"_id": ObjectId(_id), "provider": provider})
+    if user:
+        return user
+    else:
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
 # 사용자 회원가입 (Signup)
 @router.post("/signup")
@@ -62,6 +85,17 @@ async def signup_user(request: Request, response: Response):
 
         if user:
             raise HTTPException(status_code=400, detail="이미 존재하는 아이디입니다.")
+        
+        # 비회원에서 회원가입 시 비회원의 데이터를 회원으로 변환
+        if request.cookies.get("sjgpr") == "none":
+            _id = request.cookies.get("sjgid")
+            user = await db.users.find_one({"_id": _id})
+            user["provider"] = "local"
+            user["id"] = user_id
+            user["password"] = hash_password(data.get("password"))
+            await db.users.update_one({"_id": _id}, {"$set": user})
+            set_cookie(response, _id, "local")
+            return {**user, "_id": _id}
 
         # UserModel 생성 시 id 필드명 사용
         user = UserModel(
@@ -85,6 +119,11 @@ async def login_user(request: Request, response: Response) -> bool:
     user_id = data.get("user_id")
     password = data.get("password")
     provider = data.get("provider")
+
+    # 비회원에서 로그인 시 비회원의 데이터를 삭제
+    if request.cookies.get("sjgpr") == "none":
+        _id = request.cookies.get("sjgid")
+        await db.users.delete_one({"_id": _id})
 
     if provider == "local":
         user = await db.users.find_one({"id": user_id, "provider": "local"})
@@ -123,7 +162,7 @@ async def delete_guest():
 
 # 사용자 카카오 로그인 (Kakao Login)
 @router.get("/kakao/callback")
-async def kakao_callback(code: str, response: Response):
+async def kakao_callback(code: str, request: Request, response: Response):
     """ 카카오 OAuth 인증 후 액세스 토큰 요청 """
     token_url = "https://kauth.kakao.com/oauth/token"
 
@@ -158,32 +197,55 @@ async def kakao_callback(code: str, response: Response):
         user_info = user_info_response.json()
         user_id = str(user_info["id"])
         _id = None
+        
+        # localhost:5173에서 쿠키 가져오기
+        response = Response()
+        sjgpr = request.cookies.get("sjgpr")
+        sjgid = request.cookies.get("sjgid")
+        print(f"cookie test => sjgpr: {sjgpr}, sjgid: {sjgid}")
 
         user = await db.users.find_one({"id": user_id})
+
         # 만약 카카오 로그인 시 이미 회원가입이 되어있는 사용자라면 로그인 처리
         if user:
             _id = str(user["_id"])
+
+            # 만약 비회원의 정보가 있다면 비회원의 정보를 삭제
+            if sjgpr == "none" and sjgid:
+                await db.users.delete_one({"_id": ObjectId(sjgid)})
         else:
-            # kakao_login_info.json 파일에 있는 정보를 사용하여 UserModel 생성
-            # 주석 처리된 부분은 UserModel에 없는 필드이므로 추후 추가한다면 해당되는 부분을 주석 해제하여 사용할 수 있음
-            user_info = UserModel(
-                id=user_id,
-                password=hash_password("kakao"),
-                provider="kakao",
-                name=user_info["kakao_account"]["name"],
-                # email=user_info["kakao_account"]["email"] if user_info["kakao_account"]["email_needs_agreement"] else None,
-                # phone=user_info["kakao_account"]["phone_number"],
-                gender=user_info["kakao_account"]["gender"],
-                # age=user_info["kakao_account"]["age_range"],
-                birth_year=int(user_info["kakao_account"]["birthyear"])
-            )
+            if sjgpr == "none" and sjgid:
+                kakao_user_info = await db.users.find_one({"_id": ObjectId(sjgid)})
+                kakao_user_info["id"] = user_id
+                kakao_user_info["password"] = hash_password("kakao")
+                kakao_user_info["provider"] = "kakao"
+                kakao_user_info["name"] = user_info["kakao_account"]["name"]
+                # kakao_user_info["email"] = user_info["kakao_account"]["email"] if user_info["kakao_account"]["email_needs_agreement"] else None
+                # kakao_user_info["phone"] = user_info["kakao_account"]["phone_number"]
+                kakao_user_info["gender"] = user_info["kakao_account"]["gender"]
+                # kakao_user_info["age"] = user_info["kakao_account"]["age_range"]
+                kakao_user_info["birth_year"] = int(user_info["kakao_account"]["birthyear"])
 
-            user_dict = user_info.model_dump()
-            user = await db.users.insert_one(user_dict)
-            _id = str(user.inserted_id)
+                user = await db.users.update_one({"_id": ObjectId(sjgid)}, {"$set": kakao_user_info})
+                _id = sjgid
+            else:
+                # 주석 처리된 부분은 UserModel에 없는 필드이므로 추후 추가한다면 해당되는 부분을 주석 해제하여 사용할 수 있음
+                user_info = UserModel(
+                    id=user_id,
+                    password=hash_password("kakao"),
+                    provider="kakao",
+                    name=user_info["kakao_account"]["name"],
+                    # email=user_info["kakao_account"]["email"] if user_info["kakao_account"]["email_needs_agreement"] else None,
+                    # phone=user_info["kakao_account"]["phone_number"],
+                    gender=user_info["kakao_account"]["gender"],
+                    # age=user_info["kakao_account"]["age_range"],
+                    birth_year=int(user_info["kakao_account"]["birthyear"])
+                )
 
-        # 사용자 정보 출력 테스트 코드
-        response = Response()
+                user_dict = user_info.model_dump()
+                user = await db.users.insert_one(user_dict)
+                _id = str(user.inserted_id)
+
         set_cookie(response, _id, "kakao")
         response.headers["Location"] = "http://localhost:5173/chat"
         response.status_code = 303 # 오류가 아니라 리다이렉트 코드에요
