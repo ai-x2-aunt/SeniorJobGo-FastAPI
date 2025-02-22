@@ -4,7 +4,6 @@
 
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
-
 from datetime import datetime
 
 class ChatModel(BaseModel):
@@ -21,8 +20,6 @@ class UserModel(BaseModel):
     provider: Optional[str] = Field(None, pattern="^(none|local|kakao)$")  # 로그인 방법. 'none'은 비로그인, 'local'은 기본 로그인, 'kakao'는 카카오 로그인
     name: Optional[str] = Field(None, min_length=1, max_length=100)  # 이름. 최소 1자, 최대 100자 (선택적)
     birth_year: Optional[int] = None  # 출생년도 (선택적)
-    # phone: Optional[str] = Field(None, pattern=r"^010\d{8}$")  # 전화번호. 010으로 시작하는 11자리 숫자
-    # email: Optional[EmailStr] = None  # 이메일. 이메일 형식 검사
     gender: Optional[str] = Field(None, pattern="^(male|female|other)$")  # 성별. 'male', 'female', 'other'만 허용
     hope_job: Optional[str] = Field(None, max_length=100)  # 희망 직종. 최대 100자
     hope_location: Optional[str] = Field(None, max_length=100)  # 희망 근무지. 최대 100자

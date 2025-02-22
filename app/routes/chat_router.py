@@ -1,11 +1,12 @@
-# 패키지 임포트
+from fastapi import APIRouter, Request, Response, HTTPException, Depends
+from pydantic import BaseModel
 import logging
-import time
-from fastapi import APIRouter, Request, HTTPException, Depends
+from app.models.schemas import ChatRequest, ChatResponse, JobPosting, TrainingCourse
 
-# 에이전트 관련 임포트
+from db.database import db
+from bson import ObjectId
+from app.agents.job_advisor import JobAdvisorAgent
 from app.agents.chat_agent import ChatAgent
-
 from app.agents.flow_graph import build_flow_graph
 from app.models.flow_state import FlowState
 from app.agents.ner_extractor import extract_ner
@@ -15,14 +16,9 @@ import json
 import time
 from typing import List, Dict
 from datetime import datetime
-from app.agents.meal_agent import MealAgent
-from app.services.data_client import PublicDataClient
 
-
-# 로깅 설정
 logger = logging.getLogger(__name__)
 
-# 라우터 설정
 router = APIRouter()
 
 # 이전 대화 내용을 저장할 딕셔너리
@@ -30,19 +26,15 @@ conversation_history = {}
 
 # 의존성 함수들
 def get_llm(request: Request):
-    """LLM 의존성 함수"""
     return request.app.state.llm
 
 def get_vector_search(request: Request):
-    """벡터 검색 의존성 함수"""
     return request.app.state.vector_search
 
 def get_job_advisor_agent(request: Request):
-    """직업 상담사 에이전트 의존성 함수"""
     return request.app.state.job_advisor_agent
 
 def get_chat_agent(request: Request, llm=Depends(get_llm)):
-    """채팅 에이전트 의존성 함수"""
     return ChatAgent(llm=llm)
 
 async def format_chat_history(user_id: str, limit: int = 3) -> str:
@@ -89,10 +81,8 @@ async def save_chat_message(user_id: str, message: Dict) -> bool:
         return False
 
 @router.post("/chat/", response_model=ChatResponse)
-
 async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
     """채팅 API"""
-
     try:
         # 요청 시작 로깅
         logger.info("="*50)
@@ -113,14 +103,12 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
             logger.error(f"[ChatRouter] 쿠키에서 사용자 정보 조회 중 오류 발생 - 기본 응답 반환")
             return ChatResponse(
                 message=chat_request.user_message,
-
                 type="error",
                 error_message="사용자 정보를 찾을 수 없습니다."
             )
 
         # 최근 5개의 대화 이력만 가져오기
         chat_history = await format_chat_history(str(user["_id"]), limit=5)
-
 
         # NER 추출
         extracted_ner = await extract_ner(
@@ -177,7 +165,6 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
                 user_profile=chat_request.user_profile or {}
             )
             
-
             logger.info(f"[ChatRouter] 최종 응답: {response}")
 
             # 사용자 메시지 저장
@@ -205,7 +192,6 @@ async def chat(request: Request, chat_request: ChatRequest) -> ChatResponse:
             await save_chat_message(user["_id"], bot_message)
             
             return response
-
 
         except Exception as parse_error:
             logger.error(f"[ChatRouter] 응답 변환 중 오류: {str(parse_error)}")
@@ -383,9 +369,9 @@ async def search_training(
     except Exception as e:
         logger.error(f"Training search error: {str(e)}")
         logger.error("상세 에러:", exc_info=True)
-
         raise HTTPException(status_code=500, detail=str(e)) 
     
+
 # policy
 @router.post("/policy/search", response_model=ChatResponse)
 async def search_policies(request: ChatRequest):
@@ -411,27 +397,12 @@ async def search_policies(request: ChatRequest):
         
     except Exception as e:
         logger.error(f"[PolicySearch] 오류 발생: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail="정책 검색 중 오류가 발생했습니다."
-
-        )
-    
-# meals
-@router.post("/meals/search")
-async def search_meals(request: Request, chat_request: ChatRequest):
-    try:
-        # MealAgent 인스턴스 생성
-        meal_agent = MealAgent(data_client=PublicDataClient(), llm=request.app.state.llm)
-        
-        logger.info(f"[MealSearch] 무료급식소 검색 요청: {chat_request.user_message}")
-        result = await meal_agent.query_meal_agent(chat_request.user_message)
-        logger.info(f"[MealSearch] 검색 결과: {result}")
-        return result
-    except Exception as e:
-        logger.error(f"[MealSearch] 오류 발생: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail="식사 검색 중 오류가 발생했습니다."
-
+        return ChatResponse(
+            message="정책 검색 중 오류가 발생했습니다.",
+            type="error",
+            jobPostings=[],
+            trainingCourses=[],
+            policyPostings=[],
+            mealPostings=[],
+            user_profile=request.user_profile or {}
         )
