@@ -30,31 +30,25 @@ class Gov24Client:
             if not data.get('data'):
                 return []
 
-            # 보조금 및 노인 관련 키워드
-            funding_keywords = ["보조금", "지원금", "수당", "급여", "보장", "연금", "혜택", "정부 지원", "지원 사업", "지원 정책"]
-            senior_keywords = ["노인", "고령", "시니어", "장년", "고령자", "어르신"]
-
             policies = []
             for policy in data.get('data', []):
                 try:
                     # 2024년 이후 정책만 필터링
                     update_date = policy.get('수정일시', '')
-                    if update_date and int(update_date[:4]) < 2024:
+                    if update_date and int(update_date[:4]) < 2025:
                         continue
 
                     title = policy.get('서비스명', '')
                     desc = policy.get('서비스목적요약', '')
+                    target = policy.get('지원대상', '')
 
-                    # 노인/고령자 관련 보조금 정책 필터링
-                    is_funding = any(k in title or k in desc for k in funding_keywords)
-                    is_senior = any(k in title or k in desc for k in senior_keywords)
-                    is_age = "65세" in title or "65세" in desc
-
-                    if (is_senior or is_age) and is_funding:
+                    # 지원대상에 고령자 관련 키워드가 포함된 정책만 필터링
+                    target_keywords = ['노인', '고령', '중장년', '어르신', '시니어', '장년', '65세']
+                    if any(keyword in target for keyword in target_keywords):
                         normalized = {
                             "source": "Gov24",
                             "title": title,
-                            "target": "고령층 대상",
+                            "target": target,  # 원래 지원대상 정보 유지
                             "content": f"{title}: {desc}",
                             "applyMethod": policy.get('신청방법', '정보 없음'),
                             "applicationPeriod": policy.get('신청기한', '정보 없음'),
@@ -74,16 +68,16 @@ class Gov24Client:
             logger.error(f"정책 검색 중 오류: {str(e)}")
             return []
 
-    def filter_by_region(self, data: list, region: str) -> list:
-        """지역 정보로 정책 필터링"""
-        region_parts = region.split()
+    # def filter_by_region(self, data: list, region: str) -> list:
+    #     """지역 정보로 정책 필터링"""
+    #     region_parts = region.split()
         
-        filtered = []
-        for item in data:
-            title = item.get("title", "")
-            content = item.get("content", "")
-            # 모든 region_parts가 제목이나 내용에 포함되어 있는지 확인
-            if all(part in title or part in content for part in region_parts):
-                filtered.append(item)
+    #     filtered = []
+    #     for item in data:
+    #         title = item.get("title", "")
+    #         content = item.get("content", "")
+    #         # 모든 region_parts가 제목이나 내용에 포함되어 있는지 확인
+    #         if all(part in title or part in content for part in region_parts):
+    #             filtered.append(item)
         
-        return filtered 
+    #     return filtered 
