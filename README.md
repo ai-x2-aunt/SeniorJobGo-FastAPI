@@ -7,6 +7,7 @@
 ## 프로젝트 진행 기간📅
 - 2025.01.08 ~ 2025.02.21
 
+
 ## Backend(FastAPI)
 ```plaintext
 FastApi_SeniorJobGo/
@@ -42,6 +43,7 @@ FastApi_SeniorJobGo/
 └── README.md                      # 프로젝트 설명 문서
 ```
 
+
 ### 디렉토리 설명
 - `app/`: 메인 애플리케이션 코드
   - `routes/`: API 엔드포인트 정의
@@ -53,6 +55,7 @@ FastApi_SeniorJobGo/
 
 - `documents/`: 데이터 파일 저장소
 - `jobs_collection/`: 벡터 데이터베이스 저장소
+
 
 
 ### 백엔드 설치 및 실행
@@ -70,6 +73,8 @@ cp .env.example .env`
 4. 서버 실행
 `bash
 uvicorn app.main:app --reload`
+
+
 
 ### API 문서
 ---
