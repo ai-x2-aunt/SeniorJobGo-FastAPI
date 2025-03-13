@@ -1,10 +1,13 @@
-![시니어잡고 이미지](./images/SeniorJobGo.png)
-# SeniorJobGo-FastAPI
+# SeniorJobGo
+---
+- 고령층 맞춤 일자리부터 복지 정보까지, 시니어를 위한 AI 챗봇 서비스입니다.
+![시니어잡고 이미지](./images/Senior_JobGo.png)
 
-## Backend (FastAPI)
+## 프로젝트 진행 기간📅
+---
+- 2025.01.08 ~ 2025.02.21
 
-## 프로젝트 디렉토리 구조
-
+## Backend(FastAPI)
 ```plaintext
 FastApi_SeniorJobGo/
 ├── app/                           # 백엔드 애플리케이션 핵심 로직
@@ -38,8 +41,9 @@ FastApi_SeniorJobGo/
 ├── .env                           # 환경 변수 파일
 └── README.md                      # 프로젝트 설명 문서
 ```
-### 디렉토리 설명
 
+### 디렉토리 설명
+---
 - `app/`: 메인 애플리케이션 코드
   - `routes/`: API 엔드포인트 정의
   - `services/`: 비즈니스 로직 구현
@@ -51,23 +55,24 @@ FastApi_SeniorJobGo/
 - `documents/`: 데이터 파일 저장소
 - `jobs_collection/`: 벡터 데이터베이스 저장소
 
-### 백엔드 설치 및 실행
 
+### 백엔드 설치 및 실행
+---
 1. 환경 설정
-bash
+`bash
 python -m venv venv
 source venv/bin/activate # Windows: venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r requirements.txt`
 
 2. 환경 변수 설정
-bash
-cp .env.example .env
+`bash
+cp .env.example .env`
 
 3. 서버 실행
-bash
-uvicorn app.main:app --reload
+`bash
+uvicorn app.main:app --reload`
 
 ### API 문서
-
+---
 - Swagger UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
