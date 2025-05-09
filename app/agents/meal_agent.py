@@ -1,9 +1,7 @@
 import time
 from langchain_openai import ChatOpenAI
 from cachetools import TTLCache  # 제거
-from app.core.config import settings
 from app.services.meal_data_client import PublicDataClient
-import aiohttp  # 비동기 HTTP 클라이언트
 import logging
 from typing import Dict
 from kiwipiepy import Kiwi

@@ -2,7 +2,7 @@
 
 import logging
 from fastapi import APIRouter, HTTPException, Depends, Request
-from typing import Optional, Dict, List
+from typing import Optional, List
 from pydantic import BaseModel
 
 from app.agents.training_advisor import TrainingAdvisorAgent

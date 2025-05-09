@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Request, Response, HTTPException, Depends
-from pydantic import BaseModel
+from fastapi import APIRouter, Request, HTTPException, Depends
 import logging
-from app.models.schemas import ChatRequest, ChatResponse, JobPosting, TrainingCourse
+from app.models.schemas import ChatRequest, ChatResponse
 
 from db.database import db
 from bson import ObjectId
@@ -11,10 +10,7 @@ from app.agents.flow_graph import build_flow_graph
 from app.models.flow_state import FlowState
 from app.agents.ner_extractor import extract_ner
 from db.routes_auth import get_user_info_by_cookie
-import os
-import json
-import time
-from typing import List, Dict
+from typing import Dict
 from datetime import datetime
 from app.agents.meal_agent import MealAgent
 from app.services.meal_data_client import PublicDataClient

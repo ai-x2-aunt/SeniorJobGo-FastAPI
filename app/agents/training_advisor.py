@@ -1,14 +1,10 @@
-from typing import Dict, List, Optional
+from typing import Dict, List
 import logging
 from datetime import datetime, timedelta
-import json
 from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
 
 from work24.training_collector import TrainingCollector
 from work24.common_codes import CommonCodeCollector, CommonCodeType
-from app.core.prompts import EXTRACT_INFO_PROMPT
 from app.services.document_filter import DocumentFilter
 from app.utils.constants import AREA_CODES, INTEREST_NCS_MAPPING, AREA_ALIASES, get_job_synonyms, DISTRICT_CODES
 
