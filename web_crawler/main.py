@@ -5,7 +5,7 @@ from .config import SEARCH_KEYWORDS
 
 def main():
     # 환경 변수 로드
-    load_dotenv()
+    load_dotenv(override=True)
     
     # OpenAI API 키 확인
     if not os.getenv("OPENAI_API_KEY"):

@@ -61,6 +61,13 @@ class VectorStoreSearch:
         return score
 
     def _llm_rerank(self, docs: List[Document], user_ner: dict) -> List[Document]:
+        # 디버깅용
+        import os
+        print("OPENAI_API_KEY:", os.environ.get("OPENAI_API_KEY"))
+        print("환경 변수 목록:")
+        for key, value in os.environ.items():
+            if 'OPENAI' in key: # API 관련 키만 출력
+                print(f"{key}: {value[:10]}...") # 키 일부만 출력
         if not docs:
             return []
 
